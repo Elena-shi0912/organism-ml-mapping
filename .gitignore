@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Models / outputs
+models/*.pkl
+models/*.joblib
+outputs/
+!outputs/.gitkeep
+
+# Data
+data/processed/*
+!data/processed/.gitkeep
+data/feedback/*
+!data/feedback/.gitkeep
+
+# Optional: ignore raw data if sensitive
+# data/raw/*
+# !data/raw/.gitkeep
+
+# Streamlit
+.streamlit/
+
+# IDE
+.vscode/
+.idea/
