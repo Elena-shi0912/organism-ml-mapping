@@ -11,7 +11,7 @@ OUTPUTS_DIR = ROOT / "outputs"
 METRICS_DIR = OUTPUTS_DIR / "metrics"
 PREDICTIONS_DIR = OUTPUTS_DIR / "predictions"
 
-CLSI_PATH = RAW_DIR / "CLSI.csv"
+CLSI_PATH = RAW_DIR / "Master_Rules_2025.csv"
 
 INPUT_CODE_COL = "Species Code"
 INPUT_NAME_COL = "Species Full Name"
