@@ -4,12 +4,22 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # Paths
-METRICS_PATH = Path("outputs/metrics/all_metrics_summary.csv")
+METRICS_DIR = Path("outputs/metrics")
 SAVE_DIR = Path("outputs/figures")
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
+def load_all_metrics() -> pd.DataFrame:
+    metric_files = [
+        p for p in METRICS_DIR.glob("*.csv")
+        if "comparison_table" not in p.name and p.name != "all_metrics_summary.csv"
+    ]
+    frames = [pd.read_csv(p) for p in metric_files]
+    return pd.concat(frames, ignore_index=True)
+
+
 # Load results
-df = pd.read_csv(METRICS_PATH)
+df = load_all_metrics()
+df.to_csv(METRICS_DIR / "all_metrics_with_retrieval.csv", index=False)
 
 print("Loaded metrics:", df.shape)
 print(df.head())

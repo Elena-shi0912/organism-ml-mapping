@@ -1,14 +1,22 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 from typing import Dict, List
 
 import joblib
 import pandas as pd
 import streamlit as st
 
-
 ROOT = Path(__file__).resolve().parents[1] if "__file__" in globals() else Path.cwd()
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.config import CLSI_PATH, INPUT_CODE_COL, INPUT_NAME_COL, TARGET_COLS
+from src.preprocessing import load_and_clean_clsi
+from src.retrieval_baseline import build_retrieval_index, retrieve_topk
+
+
 MODELS_DIR = ROOT / "models"
 FEEDBACK_DIR = ROOT / "data" / "feedback"
 FEEDBACK_PATH = FEEDBACK_DIR / "feedback_log.csv"
@@ -22,6 +30,8 @@ TARGET_TO_FILENAME = {
 MODEL_OPTIONS = {
     "Logistic Regression": "logreg",
     "Random Forest": "random_forest",
+    "Retrieval (Top-1)": "retrieval_top1",
+    "Retrieval (Top-3)": "retrieval_top3",
 }
 
 INPUT_OPTIONS = {
@@ -48,6 +58,16 @@ def load_models(model_key: str, input_variant: str) -> Dict[str, object]:
         target: load_target_model(model_key, input_variant, target)
         for target in TARGET_TO_FILENAME
     }
+
+
+@st.cache_resource
+def load_retrieval_index(input_variant: str):
+    clsi_df = load_and_clean_clsi(CLSI_PATH)
+    return build_retrieval_index(
+        full_clsi_df=clsi_df,
+        input_variant=input_variant,
+        normalize=True,
+    )
 
 
 def build_input_text(input_variant: str, species_code: str, species_name: str) -> str:
@@ -83,6 +103,44 @@ def predict_all(models: Dict[str, object], input_text: str) -> Dict[str, Dict[st
             "prediction": pred,
             "confidence": confidence,
             "top_candidates": top_candidates,
+        }
+
+    return results
+
+
+def predict_all_retrieval(
+    index,
+    species_code: str,
+    species_name: str,
+    k: int = 1,
+) -> Dict[str, Dict[str, object]]:
+    input_df = pd.DataFrame({
+        INPUT_CODE_COL: [species_code],
+        INPUT_NAME_COL: [species_name],
+    })
+    candidates = retrieve_topk(index, input_df, k=max(3, k))
+
+    results: Dict[str, Dict[str, object]] = {}
+    for target in TARGET_COLS:
+        row_candidates = candidates[target][0]
+        top1_label, top1_score = row_candidates[0]
+        topk_labels = [f"{label} ({score:.3f})" for label, score in row_candidates[:max(3, k)]]
+
+        if k == 1:
+            prediction = top1_label
+        else:
+            labels_only = [label for label, _ in row_candidates[:k]]
+            counts = {}
+            for item in labels_only:
+                counts[item] = counts.get(item, 0) + 1
+            max_count = max(counts.values())
+            tied = [label for label, count in counts.items() if count == max_count]
+            prediction = top1_label if top1_label in tied else tied[0]
+
+        results[target] = {
+            "prediction": prediction,
+            "confidence": float(top1_score),
+            "top_candidates": topk_labels,
         }
 
     return results
@@ -335,9 +393,20 @@ if run_prediction:
         st.error("Please provide the required input(s) before running prediction.")
     else:
         try:
-            models = load_models(model_key, input_variant)
-            input_text = build_input_text(input_variant, species_code, species_name)
-            results = predict_all(models, input_text)
+            if model_key.startswith("retrieval_"):
+                k = 1 if model_key == "retrieval_top1" else 3
+                index = load_retrieval_index(input_variant)
+                input_text = build_input_text(input_variant, species_code, species_name)
+                results = predict_all_retrieval(
+                    index=index,
+                    species_code=species_code,
+                    species_name=species_name,
+                    k=k,
+                )
+            else:
+                models = load_models(model_key, input_variant)
+                input_text = build_input_text(input_variant, species_code, species_name)
+                results = predict_all(models, input_text)
 
             st.session_state.prediction_done = True
             st.session_state.results = results
