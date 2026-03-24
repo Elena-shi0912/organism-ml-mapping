@@ -410,6 +410,13 @@ def valid_input(input_variant: str, species_code: str, species_name: str) -> boo
     return False
 
 
+def render_divider() -> None:
+    if hasattr(st, "divider"):
+        st.divider()
+    else:
+        st.markdown("---")
+
+
 st.set_page_config(page_title="CLSI Human-in-the-Loop", layout="wide")
 init_session_state()
 
@@ -517,7 +524,7 @@ if st.session_state.prediction_done and st.session_state.results is not None:
 
     render_prediction_cards(results)
 
-    st.divider()
+    render_divider()
     st.subheader("Review decision")
 
     decision = st.radio(
@@ -614,7 +621,7 @@ if st.session_state.prediction_done and st.session_state.results is not None:
 if st.session_state.save_success_message:
     st.success(st.session_state.save_success_message)
 
-st.divider()
+render_divider()
 st.subheader("Feedback log")
 
 if FEEDBACK_PATH.exists():
