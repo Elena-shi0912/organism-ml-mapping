@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
 from src.config import CLSI_PATH, INPUT_CODE_COL, INPUT_NAME_COL, TARGET_COLS
 from src.preprocessing import load_and_clean_clsi
 from src.retrieval_baseline import build_retrieval_index, retrieve_topk
+from src.embedding_retrieval import build_lsa_index, retrieve_lsa_topk
 
 
 MODELS_DIR = ROOT / "models"
@@ -32,6 +33,8 @@ MODEL_OPTIONS = {
     "Random Forest": "random_forest",
     "Retrieval (Top-1)": "retrieval_top1",
     "Retrieval (Top-3)": "retrieval_top3",
+    "LSA Retrieval (Top-1)": "lsa_retrieval_top1",
+    "LSA Retrieval (Top-3)": "lsa_retrieval_top3",
 }
 
 INPUT_OPTIONS = {
@@ -65,6 +68,16 @@ def load_retrieval_index(input_variant: str):
     clsi_df = load_and_clean_clsi(CLSI_PATH)
     return build_retrieval_index(
         full_clsi_df=clsi_df,
+        input_variant=input_variant,
+        normalize=True,
+    )
+
+
+@st.cache_resource
+def load_lsa_index(input_variant: str):
+    clsi_df = load_and_clean_clsi(CLSI_PATH)
+    return build_lsa_index(
+        index_df=clsi_df,
         input_variant=input_variant,
         normalize=True,
     )
@@ -119,6 +132,44 @@ def predict_all_retrieval(
         INPUT_NAME_COL: [species_name],
     })
     candidates = retrieve_topk(index, input_df, k=max(3, k))
+
+    results: Dict[str, Dict[str, object]] = {}
+    for target in TARGET_COLS:
+        row_candidates = candidates[target][0]
+        top1_label, top1_score = row_candidates[0]
+        topk_labels = [f"{label} ({score:.3f})" for label, score in row_candidates[:max(3, k)]]
+
+        if k == 1:
+            prediction = top1_label
+        else:
+            labels_only = [label for label, _ in row_candidates[:k]]
+            counts = {}
+            for item in labels_only:
+                counts[item] = counts.get(item, 0) + 1
+            max_count = max(counts.values())
+            tied = [label for label, count in counts.items() if count == max_count]
+            prediction = top1_label if top1_label in tied else tied[0]
+
+        results[target] = {
+            "prediction": prediction,
+            "confidence": float(top1_score),
+            "top_candidates": topk_labels,
+        }
+
+    return results
+
+
+def predict_all_lsa_retrieval(
+    index,
+    species_code: str,
+    species_name: str,
+    k: int = 1,
+) -> Dict[str, Dict[str, object]]:
+    input_df = pd.DataFrame({
+        INPUT_CODE_COL: [species_code],
+        INPUT_NAME_COL: [species_name],
+    })
+    candidates = retrieve_lsa_topk(index, input_df, k=max(3, k))
 
     results: Dict[str, Dict[str, object]] = {}
     for target in TARGET_COLS:
@@ -398,6 +449,16 @@ if run_prediction:
                 index = load_retrieval_index(input_variant)
                 input_text = build_input_text(input_variant, species_code, species_name)
                 results = predict_all_retrieval(
+                    index=index,
+                    species_code=species_code,
+                    species_name=species_name,
+                    k=k,
+                )
+            elif model_key.startswith("lsa_retrieval_"):
+                k = 1 if model_key == "lsa_retrieval_top1" else 3
+                index = load_lsa_index(input_variant)
+                input_text = build_input_text(input_variant, species_code, species_name)
+                results = predict_all_lsa_retrieval(
                     index=index,
                     species_code=species_code,
                     species_name=species_name,
