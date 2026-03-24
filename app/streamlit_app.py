@@ -633,9 +633,16 @@ st.subheader("Feedback log")
 
 if FEEDBACK_PATH.exists():
     feedback_df = pd.read_csv(FEEDBACK_PATH)
-    display_df = feedback_df.tail(20).applymap(
-        lambda value: "" if pd.isna(value) else str(value)
-    )
+    try:
+        pd.options.mode.string_storage = "python"
+    except Exception:
+        pass
+
+    display_df = feedback_df.tail(20).copy()
+    display_df = display_df.astype(object)
+    display_df = display_df.where(~display_df.isna(), "")
+    for col in display_df.columns:
+        display_df[col] = display_df[col].astype(str)
     st.dataframe(display_df, use_container_width=True)
 else:
     st.caption("No feedback saved yet.")
