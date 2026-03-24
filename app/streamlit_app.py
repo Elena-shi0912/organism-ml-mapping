@@ -633,6 +633,7 @@ st.subheader("Feedback log")
 
 if FEEDBACK_PATH.exists():
     feedback_df = pd.read_csv(FEEDBACK_PATH)
-    st.dataframe(feedback_df.tail(20), use_container_width=True)
+    display_df = feedback_df.tail(20).astype(str)
+    st.dataframe(display_df, use_container_width=True)
 else:
     st.caption("No feedback saved yet.")
