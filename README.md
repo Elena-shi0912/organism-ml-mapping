@@ -23,3 +23,12 @@ This project studies whether machine learning models can learn CLSI clinical map
 - `app/`: Streamlit app
 - `data/`: raw, processed, feedback
 - `notebooks/`: exploratory work
+
+## Deploy (Streamlit Community Cloud)
+1. Push this repo to GitHub.
+2. In Streamlit Community Cloud, create a new app and select the repo/branch.
+3. Set the entrypoint to `app/streamlit_app.py`.
+4. Deploy. The app uses retrieval + LSA only by default (no large supervised models needed).
+
+Optional: to show supervised models (Logistic/Random Forest), set the environment variable
+`SHOW_SUPERVISED_MODELS=true` and ensure the model files are available.

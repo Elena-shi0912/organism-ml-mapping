@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 from typing import Dict, List
+import os
 
 import joblib
 import pandas as pd
@@ -28,14 +29,25 @@ TARGET_TO_FILENAME = {
     "Bacteria Gram Stain": "Bacteria_Gram_Stain",
 }
 
+SHOW_SUPERVISED_MODELS = os.getenv("SHOW_SUPERVISED_MODELS", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
+
 MODEL_OPTIONS = {
-    "Logistic Regression": "logreg",
-    "Random Forest": "random_forest",
     "Retrieval (Top-1)": "retrieval_top1",
     "Retrieval (Top-3)": "retrieval_top3",
     "LSA Retrieval (Top-1)": "lsa_retrieval_top1",
     "LSA Retrieval (Top-3)": "lsa_retrieval_top3",
 }
+
+if SHOW_SUPERVISED_MODELS:
+    MODEL_OPTIONS = {
+        "Logistic Regression": "logreg",
+        "Random Forest": "random_forest",
+        **MODEL_OPTIONS,
+    }
 
 INPUT_OPTIONS = {
     "Code only": "code_only",
