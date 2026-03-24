@@ -268,7 +268,7 @@ def save_feedback(
         "corrected_breakpoint_group": corrected_breakpoint_group.strip(),
         "corrected_gram_stain": corrected_gram_stain.strip(),
         "notes": notes.strip(),
-        "timestamp": pd.Timestamp.utcnow().isoformat(),
+        "timestamp": pd.Timestamp.now("UTC").isoformat(),
     }
 
     pd.DataFrame([row]).to_csv(FEEDBACK_PATH, mode="a", header=False, index=False)
@@ -417,6 +417,13 @@ def render_divider() -> None:
         st.markdown("---")
 
 
+def render_rerun() -> None:
+    if hasattr(st, "rerun"):
+        st.rerun()
+    else:
+        st.experimental_rerun()
+
+
 st.set_page_config(page_title="CLSI Human-in-the-Loop", layout="wide")
 init_session_state()
 
@@ -430,7 +437,7 @@ with st.sidebar:
 
     if st.button("Start new review"):
         clear_prediction_state()
-        st.rerun()
+        render_rerun()
 
 model_key = MODEL_OPTIONS[model_label]
 input_variant = INPUT_OPTIONS[input_label]
@@ -600,7 +607,7 @@ if st.session_state.prediction_done and st.session_state.results is not None:
                     notes=notes,
                 )
                 st.session_state.save_success_message = f"Saved to {FEEDBACK_PATH}"
-                st.rerun()
+                render_rerun()
         else:
             save_feedback(
                 model_label=st.session_state.saved_model_label,
@@ -616,7 +623,7 @@ if st.session_state.prediction_done and st.session_state.results is not None:
                 notes=notes,
             )
             st.session_state.save_success_message = f"Saved to {FEEDBACK_PATH}"
-            st.rerun()
+            render_rerun()
 
 if st.session_state.save_success_message:
     st.success(st.session_state.save_success_message)
