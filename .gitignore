@@ -21,8 +21,6 @@ outputs/
 # Data
 data/processed/*
 !data/processed/.gitkeep
-data/feedback/*
-!data/feedback/.gitkeep
 
 # Optional: ignore raw data if sensitive
 # data/raw/*
