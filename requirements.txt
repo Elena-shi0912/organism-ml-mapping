@@ -3,6 +3,7 @@ numpy
 scikit-learn
 xgboost
 streamlit
+altair<5
 joblib
 matplotlib
 jupyter
